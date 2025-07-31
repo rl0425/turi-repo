@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'openapi.animal.go.kr',
+        port: '',
+        pathname: '/openapi/service/rest/fileDownloadSrvc/files/**',
+      },
     ],
   },
 };

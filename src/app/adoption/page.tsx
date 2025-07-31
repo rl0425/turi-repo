@@ -9,10 +9,13 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button, Card, Badge } from "@/components/ui";
 import { MobileNavigation } from "@/components/common/mobile-navigation";
 import { ArrowLeft, Filter, Search, PawPrint } from "lucide-react";
 import { APP_NAME } from "@/utils/constants";
+import { useAllPets } from "@/hooks/use-pets";
+import { usePetStore } from "@/stores";
 
 /**
  * 입양 페이지 컴포넌트
@@ -26,6 +29,32 @@ export default function AdoptionPage() {
   // 로컬 상태 관리
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [showFilter, setShowFilter] = useState(false);
+
+  // React Query로 실제 데이터 가져오기
+  const { searchFilters } = usePetStore();
+  const filters =
+    selectedCategory !== "전체"
+      ? {
+          ...searchFilters,
+          species:
+            selectedCategory === "개"
+              ? ("dog" as const)
+              : selectedCategory === "고양이"
+                ? ("cat" as const)
+                : undefined,
+        }
+      : searchFilters;
+
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAllPets(filters);
+
+  const pets = data?.pages.flatMap((page) => page.pets) ?? [];
 
   /**
    * 필터 모달 토글
@@ -41,47 +70,16 @@ export default function AdoptionPage() {
     setSelectedCategory(category);
   }, []);
 
-  // 더미 데이터 - 추후 API로 대체
-  const petData = [
-    {
-      id: 1,
-      name: "믹스",
-      gender: "수컷",
-      period: "24.09.22 ~ 24.10.22",
-      birthYear: "2024 (년생)",
-      location: "서울시 관악구 남현동",
-      image: null,
-    },
-    {
-      id: 2,
-      name: "믹스",
-      gender: "수컷",
-      period: "24.09.22 ~ 24.10.22",
-      birthYear: "2024 (년생)",
-      location: "서울시 관악구 남현동",
-      image: null,
-    },
-    {
-      id: 3,
-      name: "믹스",
-      gender: "수컷",
-      period: "24.09.22 ~ 24.10.22",
-      birthYear: "2024 (년생)",
-      location: "서울시 관악구 남현동",
-      image: null,
-    },
-    {
-      id: 4,
-      name: "믹스",
-      gender: "수컷",
-      period: "24.09.22 ~ 24.10.22",
-      birthYear: "2024 (년생)",
-      location: "서울시 관악구 남현동",
-      image: null,
-    },
-  ];
+  /**
+   * 더 많은 데이터 로드
+   */
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const categories = ["전체", "보호소", "펫샵"];
+  const categories = ["전체", "개", "고양이"];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -129,21 +127,61 @@ export default function AdoptionPage() {
 
           {/* 입양 가능한 반려동물 목록 */}
           <div className="space-y-4">
-            {petData.map((pet) => (
+            {/* 로딩 상태 */}
+            {isLoading && pets.length === 0 && (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">
+                  반려동물을 불러오는 중...
+                </span>
+              </div>
+            )}
+
+            {/* 에러 상태 */}
+            {error && pets.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-red-600 mb-2">
+                  {error instanceof Error
+                    ? error.message
+                    : "데이터를 불러오는데 실패했습니다."}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  다시 시도
+                </Button>
+              </div>
+            )}
+
+            {/* 실제 데이터 렌더링 */}
+            {pets.map((pet) => (
               <Link key={pet.id} href={`/adoption/${pet.id}`}>
                 <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex space-x-4 p-4">
                     <div className="relative">
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                        {pet.image ? (
-                          // 추후 이미지 컴포넌트로 교체
-                          <div className="w-full h-full bg-gray-300 rounded-lg" />
+                      <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden">
+                        {pet.images && pet.images.length > 0 ? (
+                          <Image
+                            src={pet.images[0].url}
+                            alt={pet.name}
+                            width={80}
+                            height={80}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
-                          <PawPrint className="h-10 w-10 text-gray-400" />
+                          <div className="flex items-center justify-center w-full h-full">
+                            <PawPrint className="h-10 w-10 text-gray-400" />
+                          </div>
                         )}
                       </div>
                       <Badge className="absolute -top-2 -left-2 text-xs bg-blue-600">
-                        {pet.gender}
+                        {pet.gender === "male"
+                          ? "수컷"
+                          : pet.gender === "female"
+                            ? "암컷"
+                            : "미상"}
                       </Badge>
                     </div>
                     <div className="flex-1">
@@ -152,16 +190,64 @@ export default function AdoptionPage() {
                           {pet.name}
                         </h4>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">{pet.period}</p>
                       <p className="text-sm text-gray-600 mb-1">
-                        {pet.birthYear}
+                        {pet.age.years > 0
+                          ? `${pet.age.years}살`
+                          : pet.age.months > 0
+                            ? `${pet.age.months}개월`
+                            : "나이 미상"}
+                        {pet.weight && ` • ${pet.weight}kg`}
                       </p>
-                      <p className="text-xs text-gray-500">{pet.location}</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        {pet.species === "dog"
+                          ? "개"
+                          : pet.species === "cat"
+                            ? "고양이"
+                            : "기타"}
+                        {pet.color &&
+                          pet.color.length > 0 &&
+                          ` • ${pet.color.join(", ")}`}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {pet.location.city || pet.location.address}
+                      </p>
                     </div>
                   </div>
                 </Card>
               </Link>
             ))}
+
+            {/* 더 보기 버튼 */}
+            {hasNextPage && (
+              <div className="text-center py-4">
+                <Button
+                  variant="outline"
+                  onClick={handleLoadMore}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      로딩 중...
+                    </>
+                  ) : (
+                    "더 보기"
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* 데이터 없음 상태 */}
+            {!isLoading && pets.length === 0 && !error && (
+              <div className="text-center py-8">
+                <div className="flex flex-col items-center">
+                  <PawPrint className="h-12 w-12 text-gray-400 mb-2" />
+                  <p className="text-gray-500">
+                    아직 입양 가능한 반려동물이 없습니다
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

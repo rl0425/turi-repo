@@ -49,12 +49,13 @@ export type Gender = 'male' | 'female' | 'unknown';
  * 지역 정보
  */
 export interface Location {
-  city: string;
-  district: string;
+  address?: string; // 전체 주소
+  city?: string; // 시/도
+  district?: string; // 구/군
   coordinates?: {
     latitude: number;
     longitude: number;
-  };
+  } | null;
 }
 
 /**

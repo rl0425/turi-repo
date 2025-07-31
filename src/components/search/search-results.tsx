@@ -16,9 +16,14 @@ import {
   MapPin,
   User,
   BookOpen,
+  PawPrint,
 } from "lucide-react";
-import { Card } from "@/components/ui";
+import Image from "next/image";
+import { Card, Button } from "@/components/ui";
 import { ROUTES } from "@/utils/constants";
+import { usePetStore } from "@/stores";
+import { useSearchPets } from "@/hooks/use-pets";
+import type { Pet } from "@/types";
 
 interface SearchResultsProps {
   /** 검색어 */
@@ -144,66 +149,60 @@ export function SearchResults({
   onItemClick,
 }: SearchResultsProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [adoptionResults, setAdoptionResults] = useState<AdoptionItem[]>([]);
+  const { searchFilters } = usePetStore();
+
+  // React Query로 검색
+  const searchParams = useMemo(
+    () => ({
+      keyword: query,
+      ...searchFilters,
+    }),
+    [query, searchFilters]
+  );
+
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSearchPets(searchParams);
+
+  const searchResults = data?.pages.flatMap((page) => page.results) ?? [];
+
   const [postResults, setPostResults] = useState<PostItem[]>([]);
 
   /**
-   * 검색 실행 함수
+   * 게시글 검색 (임시로 더미 데이터 사용)
    */
-  const performSearch = useCallback(
-    async (searchQuery: string, searchCategory: typeof category) => {
-      if (!searchQuery.trim()) {
-        setAdoptionResults([]);
-        setPostResults([]);
-        return;
-      }
+  useEffect(() => {
+    if (category === "posts") {
+      const filtered = mockPostData.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query.toLowerCase()) ||
+          item.content.toLowerCase().includes(query.toLowerCase()) ||
+          item.tags.some((tag) =>
+            tag.toLowerCase().includes(query.toLowerCase())
+          )
+      );
+      setPostResults(filtered);
+    }
+  }, [query, category]);
 
-      setIsLoading(true);
-
-      try {
-        // 실제 API 호출 시뮬레이션 (300ms 지연)
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        if (searchCategory === "adoption") {
-          // 입양 데이터 필터링
-          const filtered = mockAdoptionData.filter(
-            (item) =>
-              item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.breed.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.location.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-          setAdoptionResults(filtered);
-        } else {
-          // 게시글 데이터 필터링
-          const filtered = mockPostData.filter(
-            (item) =>
-              item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.tags.some((tag) =>
-                tag.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-          );
-          setPostResults(filtered);
-        }
-      } catch (error) {
-        console.error("검색 중 오류 발생:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  /**
+   * 입양 아이템 클릭 핸들러 (Pet 타입용)
+   */
+  const handlePetItemClick = useCallback(
+    (pet: Pet) => {
+      router.push(`/adoption/${pet.id}`);
+      onItemClick?.(pet);
     },
-    []
+    [router, onItemClick]
   );
 
   /**
-   * 검색어나 카테고리 변경 시 검색 실행
-   */
-  useEffect(() => {
-    performSearch(query, category);
-  }, [query, category, performSearch]);
-
-  /**
-   * 입양 아이템 클릭 핸들러
+   * 입양 아이템 클릭 핸들러 (기존 - 사용 안함)
    */
   const handleAdoptionItemClick = useCallback(
     (item: AdoptionItem) => {
@@ -289,47 +288,84 @@ export function SearchResults({
    */
   const renderAdoptionResults = () => (
     <div className="space-y-3 p-4">
-      {adoptionResults.map((item) => (
+      {searchResults.map((pet: Pet) => (
         <Card
-          key={item.id}
+          key={pet.id}
           className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => handleAdoptionItemClick(item)}
+          onClick={() => handlePetItemClick(pet)}
         >
           <div className="flex space-x-4">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">🐾</span>
+            <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+              {pet.images && pet.images.length > 0 ? (
+                <Image
+                  src={pet.images[0].url}
+                  alt={pet.name}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full">
+                  <PawPrint className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900 truncate">
-                    {item.name}
+                    {pet.name}
                   </h3>
-                  <p className="text-sm text-gray-600">{item.breed}</p>
+                  <p className="text-sm text-gray-600">
+                    {pet.breed?.name ||
+                      (pet.species === "dog"
+                        ? "개"
+                        : pet.species === "cat"
+                          ? "고양이"
+                          : "기타")}
+                  </p>
                 </div>
-                {item.isUrgent && (
-                  <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
-                    긴급
+                {pet.adoptionStatus === "available" && (
+                  <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
+                    입양가능
                   </span>
                 )}
               </div>
               <div className="mt-2 space-y-1">
                 <div className="flex items-center text-xs text-gray-500">
                   <Calendar className="w-3 h-3 mr-1" />
-                  <span>{item.age}</span>
+                  <span>
+                    {pet.age.years > 0
+                      ? `${pet.age.years}살`
+                      : pet.age.months > 0
+                        ? `${pet.age.months}개월`
+                        : "나이미상"}
+                  </span>
                   <span className="mx-2">•</span>
-                  <span>{item.size}</span>
+                  <span>
+                    {pet.size === "small"
+                      ? "소형"
+                      : pet.size === "medium"
+                        ? "중형"
+                        : pet.size === "large"
+                          ? "대형"
+                          : "기타"}
+                  </span>
                 </div>
                 <div className="flex items-center text-xs text-gray-500">
                   <MapPin className="w-3 h-3 mr-1" />
-                  <span className="truncate">{item.location}</span>
+                  <span className="truncate">
+                    {pet.location.city || pet.location.address}
+                  </span>
                 </div>
               </div>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs text-gray-400">{item.shelter}</span>
+                <span className="text-xs text-gray-400">
+                  {pet.shelterInfo?.shelterName || "보호소 정보 없음"}
+                </span>
                 <div className="flex items-center text-xs text-gray-400">
                   <Heart className="w-3 h-3 mr-1" />
-                  <span>{item.likeCount}</span>
+                  <span>{pet.spayedNeutered ? "중성화" : "미중성화"}</span>
                 </div>
               </div>
             </div>
@@ -405,20 +441,70 @@ export function SearchResults({
   );
 
   // 메인 렌더링
-  if (isLoading) {
-    return renderLoading();
-  }
+  if (category === "adoption") {
+    // 입양 검색 결과
+    if (isLoading && searchResults.length === 0) {
+      return renderLoading();
+    }
 
-  if (
-    (category === "adoption" && adoptionResults.length === 0) ||
-    (category === "posts" && postResults.length === 0)
-  ) {
-    return renderEmptyState();
-  }
+    if (error && searchResults.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl">😞</span>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            검색 중 오류가 발생했습니다
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {error instanceof Error ? error.message : "다시 시도해주세요"}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+          >
+            다시 시도
+          </Button>
+        </div>
+      );
+    }
 
-  return (
-    <div className="h-full overflow-y-auto">
-      {category === "adoption" ? renderAdoptionResults() : renderPostResults()}
-    </div>
-  );
+    if (searchResults.length === 0 && !isLoading) {
+      return renderEmptyState();
+    }
+
+    return (
+      <div className="h-full overflow-y-auto">
+        {renderAdoptionResults()}
+
+        {/* 더 보기 버튼 */}
+        {hasNextPage && (
+          <div className="text-center py-4">
+            <Button
+              variant="outline"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  로딩 중...
+                </>
+              ) : (
+                "더 보기"
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    // 게시글 검색 결과 (기존 로직 유지)
+    if (postResults.length === 0) {
+      return renderEmptyState();
+    }
+
+    return <div className="h-full overflow-y-auto">{renderPostResults()}</div>;
+  }
 }

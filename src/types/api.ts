@@ -233,3 +233,100 @@ export type ApiEndpoint = {
     document: 'POST /api/upload/document';
   };
 };
+
+/**
+ * 공공데이터 유기동물 API 타입 정의
+ */
+
+// API 기본 파라미터
+export interface AnimalApiParams {
+  serviceKey: string;
+  numOfRows?: number;
+  pageNo?: number;
+  bgnde?: string; // 시작일 (YYYYMMDD)
+  endde?: string; // 종료일 (YYYYMMDD)
+  upkind?: string; // 축종코드 (개: 417000, 고양이: 422000)
+  kind?: string; // 품종코드
+  upr_cd?: string; // 시도코드
+  org_cd?: string; // 시군구코드
+  care_reg_no?: string; // 보호센터명
+  state?: string; // 상태 (protect: 보호중, notice: 공고중, protect_end: 보호종료)
+  neut_yn?: string; // 중성화여부 (Y, N, U)
+}
+
+// 공공데이터 API 공통 응답
+export interface PublicDataResponse<T> {
+  response: {
+    header: {
+      resultCode: string;
+      resultMsg: string;
+    };
+    body: {
+      items?: {
+        item: T[];
+      };
+      numOfRows: number;
+      pageNo: number;
+      totalCount: number;
+    };
+  };
+}
+
+// 유기동물 정보 (실제 API 응답 형태)
+export interface AbandonmentAnimalItem {
+  desertionNo: string; // 유기번호
+  rfidCd?: string; // RFID 코드 (옵션)
+  happenDt: string; // 접수일 (YYYYMMDD)
+  happenPlace: string; // 발견장소
+  kindFullNm: string; // 전체 품종명 (예: "[개] 믹스견")
+  upKindCd: string; // 축종 코드 (417000: 개, 422000: 고양이)
+  upKindNm: string; // 축종명 (개, 고양이 등)
+  kindCd: string; // 품종 코드
+  kindNm: string; // 품종명 (믹스견 등)
+  colorCd: string; // 색상
+  age: string; // 나이 (예: "2020(년생)")
+  weight: string; // 체중 (예: "25(Kg)")
+  noticeNo: string; // 공고번호
+  noticeSdt: string; // 공고시작일 (YYYYMMDD)
+  noticeEdt: string; // 공고종료일 (YYYYMMDD)
+  popfile1: string; // 이미지 1
+  popfile2?: string; // 이미지 2 (옵션)
+  processState: string; // 상태 (보호중 등)
+  sexCd: string; // 성별 (F:암컷, M:수컷, Q:미상)
+  neuterYn: string; // 중성화여부 (Y:예, N:아니오, U:미상)
+  specialMark: string; // 특징
+  careRegNo: string; // 보호센터 등록번호
+  careNm: string; // 보호센터명
+  careTel: string; // 보호센터전화번호
+  careAddr: string; // 보호장소
+  careOwnerNm: string; // 보호센터 소유자명
+  orgNm: string; // 관할기관
+  etcBigo?: string; // 기타 사항 (옵션)
+  updTm: string; // 업데이트 시간
+  [key: string]: string | undefined; // 추가 필드 대응을 위한 인덱스 시그니처
+}
+
+// 품종 코드 정보
+export interface KindInfo {
+  kindCd: string;
+  KNm: string; // 한글명
+}
+
+// 시도 코드 정보  
+export interface SidoInfo {
+  orgCd: string;
+  orgdownNm: string; // 시도명
+}
+
+// 시군구 코드 정보
+export interface SigunguInfo {
+  uprCd: string;
+  orgCd: string;
+  orgdownNm: string; // 시군구명
+}
+
+// 보호소 정보
+export interface ShelterInfo {
+  careRegNo: string;
+  careNm: string; // 보호센터명
+}
