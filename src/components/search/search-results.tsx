@@ -169,7 +169,8 @@ export function SearchResults({
     isFetchingNextPage,
   } = useSearchPets(searchParams);
 
-  const searchResults = data?.pages.flatMap((page) => page.results) ?? [];
+  const searchResults =
+    data?.pages.flatMap((page) => page.items || []).filter(Boolean) ?? [];
 
   const [postResults, setPostResults] = useState<PostItem[]>([]);
 
@@ -196,9 +197,9 @@ export function SearchResults({
   const handlePetItemClick = useCallback(
     (pet: Pet) => {
       router.push(`/adoption/${pet.id}`);
-      onItemClick?.(pet);
+      // Pet 타입은 onItemClick 콜백에서 제외 (타입 불일치로 인해)
     },
-    [router, onItemClick]
+    [router]
   );
 
   /**

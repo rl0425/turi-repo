@@ -99,18 +99,19 @@ export function SearchBottomSheet({ isOpen, onClose }: SearchBottomSheetProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50 md:hidden"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50 md:hidden"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="search-title"
     >
-      <div className="bg-white rounded-t-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-        {/* 핸들러 */}
-        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-4"></div>
-
+      <div
+        className={`bg-white w-full h-full overflow-hidden flex flex-col transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         {/* 헤더 */}
-        <div className="flex items-center justify-between px-6 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 id="search-title" className="text-xl font-bold text-gray-900">
             검색
           </h2>
@@ -161,7 +162,7 @@ export function SearchBottomSheet({ isOpen, onClose }: SearchBottomSheetProps) {
         </div>
 
         {/* 검색 결과 */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <SearchResults
             query={debouncedQuery}
             category={activeCategory}
@@ -229,13 +230,17 @@ export function SearchModal({ isOpen, onClose }: SearchBottomSheetProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 p-4 hidden md:flex"
+      className="fixed inset-0 bg-black bg-opacity-50 items-center justify-end z-50 hidden md:flex"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="search-modal-title"
     >
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <div
+        className={`bg-white w-full h-full overflow-hidden flex flex-col transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2
@@ -291,7 +296,7 @@ export function SearchModal({ isOpen, onClose }: SearchBottomSheetProps) {
         </div>
 
         {/* 검색 결과 */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <SearchResults
             query={debouncedQuery}
             category={activeCategory}

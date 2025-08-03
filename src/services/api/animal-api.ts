@@ -1,71 +1,71 @@
 /**
  * 유기동물 API 클라이언트 서비스
- * 
+ *
  * Next.js API Routes를 통해 공공데이터를 호출합니다.
  * CORS 문제 해결을 위해 서버사이드 프록시를 사용합니다.
  */
 
-import type { 
-  AnimalApiParams, 
-  AbandonmentAnimalItem, 
-  KindInfo, 
-  SidoInfo, 
-  SigunguInfo, 
+import type {
+  AnimalApiParams,
+  AbandonmentAnimalItem,
+  KindInfo,
+  SidoInfo,
+  SigunguInfo,
   ShelterInfo,
-  ApiResponse 
-} from '@/types/api';
+  ApiResponse,
+} from "@/types/api";
 
 /**
  * 내부 API 기본 설정
  */
-const API_BASE_URL = '/api';
+const API_BASE_URL = "/api";
 
 /**
  * 축종 코드 상수
  */
 export const ANIMAL_TYPE_CODES = {
-  DOG: '417000',      // 개
-  CAT: '422000',      // 고양이
-  OTHER: '429900'     // 기타
+  DOG: "417000", // 개
+  CAT: "422000", // 고양이
+  OTHER: "429900", // 기타
 } as const;
 
 /**
  * 성별 코드 변환
  */
 export const SEX_CODE_MAP = {
-  'M': '수컷',
-  'F': '암컷',
-  'Q': '미상'
+  M: "수컷",
+  F: "암컷",
+  Q: "미상",
 } as const;
 
 /**
  * 중성화 여부 변환
  */
 export const NEUTER_CODE_MAP = {
-  'Y': '예',
-  'N': '아니오',
-  'U': '미상'
+  Y: "예",
+  N: "아니오",
+  U: "미상",
 } as const;
 
 /**
  * 내부 API 요청 함수
  */
 async function fetchFromInternalAPI<T>(
-  endpoint: string, 
+  endpoint: string,
   params?: Record<string, any>,
-  method: 'GET' | 'POST' = 'GET'
+  method: "GET" | "POST" = "GET"
 ): Promise<ApiResponse<T>> {
   try {
     let url = `${API_BASE_URL}/${endpoint}`;
     let requestInit: RequestInit = {
       method,
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
     };
 
-    if (method === 'GET' && params) {
+    if (method === "GET" && params) {
       const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -75,7 +75,7 @@ async function fetchFromInternalAPI<T>(
       if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
       }
-    } else if (method === 'POST' && params) {
+    } else if (method === "POST" && params) {
       requestInit.body = JSON.stringify(params);
     }
 
@@ -86,15 +86,15 @@ async function fetchFromInternalAPI<T>(
     }
 
     const data = await response.json();
-    
+
     // 내부 API 응답 상태 체크
     if (!data.success) {
-      throw new Error(data.error?.message || 'API 요청에 실패했습니다.');
+      throw new Error(data.error?.message || "API 요청에 실패했습니다.");
     }
 
     return data;
   } catch (error) {
-    console.error('내부 API 요청 오류:', error);
+    console.error("내부 API 요청 오류:", error);
     throw error;
   }
 }
@@ -114,7 +114,7 @@ export async function getAbandonmentAnimals(
     numOfRows: 20,
     pageNo: 1,
     upkind: ANIMAL_TYPE_CODES.DOG, // 기본값: 개
-    state: 'notice', // 기본값: 공고중
+    state: "notice", // 기본값: 공고중
   };
 
   const response = await fetchFromInternalAPI<{
@@ -122,59 +122,61 @@ export async function getAbandonmentAnimals(
     totalCount: number;
     pageNo: number;
     numOfRows: number;
-  }>('animals', { ...defaultParams, ...params }, 'GET');
+  }>("animals", { ...defaultParams, ...params }, "GET");
 
   return response.data!;
 }
 
 /**
  * 품종 코드 목록 조회
+ * TODO: fetchPublicData 함수 구현 필요
  */
-export async function getKindList(
-  upkind: string = ANIMAL_TYPE_CODES.DOG
-): Promise<KindInfo[]> {
-  const response = await fetchPublicData<KindInfo>(
-    'kind',
-    { up_kind_cd: upkind }
-  );
+// export async function getKindList(
+//   upkind: string = ANIMAL_TYPE_CODES.DOG
+// ): Promise<KindInfo[]> {
+//   const response = await fetchPublicData<KindInfo>("kind", {
+//     up_kind_cd: upkind,
+//   });
 
-  return response.response.body.items?.item || [];
-}
+//   return response.response.body.items?.item || [];
+// }
 
 /**
  * 시도 코드 목록 조회
+ * TODO: fetchPublicData 함수 구현 필요
  */
-export async function getSidoList(): Promise<SidoInfo[]> {
-  const response = await fetchPublicData<SidoInfo>('sido', {});
-  return response.response.body.items?.item || [];
-}
+// export async function getSidoList(): Promise<SidoInfo[]> {
+//   const response = await fetchPublicData<SidoInfo>("sido", {});
+//   return response.response.body.items?.item || [];
+// }
 
 /**
  * 시군구 코드 목록 조회
+ * TODO: fetchPublicData 함수 구현 필요
  */
-export async function getSigunguList(uprCd: string): Promise<SigunguInfo[]> {
-  const response = await fetchPublicData<SigunguInfo>(
-    'sigungu',
-    { upr_cd: uprCd }
-  );
+// export async function getSigunguList(uprCd: string): Promise<SigunguInfo[]> {
+//   const response = await fetchPublicData<SigunguInfo>("sigungu", {
+//     upr_cd: uprCd,
+//   });
 
-  return response.response.body.items?.item || [];
-}
+//   return response.response.body.items?.item || [];
+// }
 
 /**
  * 보호소 목록 조회
+ * TODO: fetchPublicData 함수 구현 필요
  */
-export async function getShelterList(
-  upr_cd?: string,
-  org_cd?: string
-): Promise<ShelterInfo[]> {
-  const params: Record<string, string> = {};
-  if (upr_cd) params.upr_cd = upr_cd;
-  if (org_cd) params.org_cd = org_cd;
+// export async function getShelterList(
+//   upr_cd?: string,
+//   org_cd?: string
+// ): Promise<ShelterInfo[]> {
+//   const params: Record<string, string> = {};
+//   if (upr_cd) params.upr_cd = upr_cd;
+//   if (org_cd) params.org_cd = org_cd;
 
-  const response = await fetchPublicData<ShelterInfo>('shelter', params);
-  return response.response.body.items?.item || [];
-}
+//   const response = await fetchPublicData<ShelterInfo>("shelter", params);
+//   return response.response.body.items?.item || [];
+// }
 
 /**
  * 유기동물 상세 정보 조회 (유기번호로)
@@ -183,20 +185,37 @@ export async function getAnimalDetail(
   desertionNo: string
 ): Promise<AbandonmentAnimalItem | null> {
   try {
-    const response = await getAbandonmentAnimals({
-      numOfRows: 1,
-      pageNo: 1,
-    });
+    // 🔧 여러 페이지에서 동물을 찾아야 합니다
+    let currentPage = 1;
+    const maxPages = 50; // 최대 50페이지까지 검색 (1000개 동물)
 
-    // 실제로는 유기번호로 필터링할 수 없으므로
-    // 전체 목록에서 찾아야 합니다 (API 제한사항)
-    const animal = response.animals.find(
-      item => item.desertionNo === desertionNo
-    );
+    while (currentPage <= maxPages) {
+      const response = await getAbandonmentAnimals({
+        numOfRows: 20, // 한 번에 20개씩 가져오기
+        pageNo: currentPage,
+      });
 
-    return animal || null;
+      // 현재 페이지에서 해당 동물 찾기
+      const animal = response.animals.find(
+        (item) => item.desertionNo === desertionNo
+      );
+
+      if (animal) {
+        return animal;
+      }
+
+      // 더 이상 데이터가 없으면 종료
+      if (response.animals.length < 20) {
+        break;
+      }
+
+      currentPage++;
+    }
+
+    console.log("동물을 찾을 수 없습니다:", desertionNo);
+    return null;
   } catch (error) {
-    console.error('동물 상세 정보 조회 오류:', error);
+    console.error("동물 상세 정보 조회 오류:", error);
     return null;
   }
 }
@@ -227,7 +246,7 @@ export async function searchAnimals(searchParams: {
     totalCount: number;
     pageNo: number;
     numOfRows: number;
-  }>('animals', searchParams, 'POST');
+  }>("animals", searchParams, "POST");
 
   return response.data!;
 }
@@ -240,14 +259,14 @@ export const animalDataUtils = {
    * 성별 코드를 한글로 변환
    */
   formatSex: (sexCd: string): string => {
-    return SEX_CODE_MAP[sexCd as keyof typeof SEX_CODE_MAP] || '미상';
+    return SEX_CODE_MAP[sexCd as keyof typeof SEX_CODE_MAP] || "미상";
   },
 
   /**
    * 중성화 여부를 한글로 변환
    */
   formatNeuter: (neutYn: string): string => {
-    return NEUTER_CODE_MAP[neutYn as keyof typeof NEUTER_CODE_MAP] || '미상';
+    return NEUTER_CODE_MAP[neutYn as keyof typeof NEUTER_CODE_MAP] || "미상";
   },
 
   /**
@@ -263,22 +282,22 @@ export const animalDataUtils = {
    */
   getImageUrl: (popfile: string, filename: string): string => {
     // 실제 이미지 URL이 있으면 사용, 없으면 기본 이미지
-    if (popfile && popfile !== '') {
+    if (popfile && popfile !== "") {
       return popfile;
     }
-    if (filename && filename !== '') {
+    if (filename && filename !== "") {
       return filename;
     }
-    return '/images/default-pet.jpg'; // 기본 이미지
+    return "/images/default-pet.jpg"; // 기본 이미지
   },
 
   /**
    * 나이 정보 정리
    */
   formatAge: (age: string): string => {
-    if (!age) return '미상';
+    if (!age) return "미상";
     // 연도만 있는 경우 처리
-    if (age.includes('년')) return age;
+    if (age.includes("년")) return age;
     if (age.match(/^\d{4}$/)) {
       const currentYear = new Date().getFullYear();
       const birthYear = parseInt(age);
@@ -292,8 +311,8 @@ export const animalDataUtils = {
    * 체중 정보 정리
    */
   formatWeight: (weight: string): string => {
-    if (!weight) return '미상';
-    if (weight.includes('kg') || weight.includes('Kg')) return weight;
+    if (!weight) return "미상";
+    if (weight.includes("kg") || weight.includes("Kg")) return weight;
     return `${weight}kg`;
-  }
+  },
 };

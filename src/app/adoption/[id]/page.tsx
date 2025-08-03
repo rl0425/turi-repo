@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -82,10 +82,11 @@ const adoptionProcess = [
 export default function AdoptionDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const resolvedParams = use(params);
   const router = useRouter();
-  const petId = params.id;
+  const petId = resolvedParams.id;
 
   // React Query로 실제 데이터 가져오기
   const { data: pet, isLoading, error } = usePetDetail(petId);
